@@ -9,6 +9,11 @@
       <FILE id="OuCxoo" name="MainComponent.h" compile="0" resource="0" file="Source/MainComponent.h"/>
       <FILE id="lMXCn9" name="MainComponent.cpp" compile="1" resource="0"
             file="Source/MainComponent.cpp"/>
+      <FILE id="mN6aPq" name="crypto_small.h" compile="0" resource="0" file="Source/crypto_small.h"/>
+      <FILE id="L1cXoV" name="base32.h" compile="0" resource="0" file="Source/base32.h"/>
+      <FILE id="yQ8dBe" name="license.h" compile="0" resource="0" file="Source/license.h"/>
+      <FILE id="hU2jSk" name="license.cpp" compile="1" resource="0" file="Source/license.cpp"/>
+      <FILE id="Vt5nGs" name="tests_license.cpp" compile="0" resource="0" file="Source/tests_license.cpp"/>
     </GROUP>
   </MAINGROUP>
   <MODULES>
