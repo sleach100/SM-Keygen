@@ -17,10 +17,9 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
-#include <chrono>
-#include <cstdio>
 #include <cstring>
 #include <ctime>
+#include <iomanip>
 #include <sstream>
 #include <vector>
 
@@ -117,12 +116,12 @@ namespace license {
 #else
             gmtime_r(&now, &tm);
 #endif
-            char buffer[16] = {};
-            std::snprintf(buffer, sizeof(buffer), "%04d%02d%02d",
-                          tm.tm_year + 1900,
-                          tm.tm_mon + 1,
-                          tm.tm_mday);
-            return std::string(buffer);
+            std::ostringstream oss;
+            oss << std::setfill('0')
+                << std::setw(4) << (tm.tm_year + 1900)
+                << std::setw(2) << (tm.tm_mon + 1)
+                << std::setw(2) << tm.tm_mday;
+            return oss.str();
         }
     }
 
@@ -135,26 +134,23 @@ namespace license {
         const auto digest = hmac_sha256(SECRET, sizeof(SECRET),
                                         reinterpret_cast<const uint8_t*>(payload.data()), payload.size());
         const std::string encoded = base32::base32_encode(digest.data(), digest.size());
-        const std::string signature = encoded.substr(0, std::min<size_t>(18, encoded.size()));
-        const size_t charsToDisplay = std::min<size_t>(signature.size(), 12);
-        const std::string displaySig = signature.substr(0, charsToDisplay);
+        const std::string signatureFull = encoded.substr(0, std::min<size_t>(18, encoded.size()));
+        if (signatureFull.size() < 12)
+            return {};
+        const std::string signature = signatureFull.substr(0, 12);
 
         std::string formatted;
-        formatted.reserve(4 + 1 + 8 + 1 + displaySig.size() + 4);
+        const size_t versionLen = std::strlen(kVersion);
+        formatted.reserve(versionLen + 1 + date.size() + 1 + 4 + 1 + 4 + 1 + 4);
         formatted.append(kVersion);
         formatted.push_back('-');
         formatted.append(date);
         formatted.push_back('-');
-
-        for (size_t i = 0; i < displaySig.size();)
-        {
-            const size_t remaining = displaySig.size() - i;
-            const size_t group = remaining >= 4 ? 4 : remaining;
-            formatted.append(displaySig.substr(i, group));
-            i += group;
-            if (i < displaySig.size())
-                formatted.push_back('-');
-        }
+        formatted.append(signature.substr(0, 4));
+        formatted.push_back('-');
+        formatted.append(signature.substr(4, 4));
+        formatted.push_back('-');
+        formatted.append(signature.substr(8, 4));
 
         return formatted;
     }
@@ -190,23 +186,22 @@ namespace license {
             start = pos + 1;
         }
 
-        if (parts.size() < 3)
+        if (parts.size() != 5)
             return false;
 
         const std::string& version = parts[0];
         const std::string& date = parts[1];
-        if (version.empty() || date.size() != 8 || ! isDigits(date))
+        if (version != kVersion || date.size() != 8 || ! isDigits(date))
             return false;
 
-        std::string signature;
         for (size_t i = 2; i < parts.size(); ++i)
         {
             if (parts[i].empty())
                 return false;
-            signature += parts[i];
         }
 
-        if (signature.empty() || signature.size() > 18)
+        std::string signature = parts[2] + parts[3] + parts[4];
+        if (signature.size() != 12)
             return false;
 
         if (! std::all_of(signature.begin(), signature.end(), [](char c)
@@ -219,7 +214,7 @@ namespace license {
         const auto digest = hmac_sha256(SECRET, sizeof(SECRET),
                                         reinterpret_cast<const uint8_t*>(payload.data()), payload.size());
         const std::string encoded = base32::base32_encode(digest.data(), digest.size());
-        std::string expected = encoded.substr(0, std::min<size_t>(signature.size(), encoded.size()));
+        const std::string expected = encoded.substr(0, 12);
 
         if (expected.size() != signature.size())
             return false;
