@@ -1,4 +1,5 @@
 #include "MainComponent.h"
+#include "license.h"
 #include <juce_gui_basics/juce_gui_basics.h>
 
 namespace

@@ -24,17 +24,14 @@
 #include <sstream>
 #include <vector>
 
-namespace license
-{
+namespace license {
     using crypto_small::hmac_sha256;
 
-    namespace
-    {
+    namespace {
         static const char* kVersion = "V1";
 
         // TODO: REPLACE SECRET with 32+ random bytes before release.
-        static const uint8_t SECRET[] =
-        {
+        static const uint8_t SECRET[] = {
             0x4f, 0x92, 0x7b, 0x61, 0x33, 0xa8, 0xde, 0x5c,
             0x11, 0xfe, 0x76, 0x2a, 0x9d, 0x44, 0x3b, 0x50,
             0x8c, 0xe7, 0x17, 0xd4, 0x6a, 0x0b, 0x2c, 0x95,
@@ -68,65 +65,65 @@ namespace license
             }
             return result == 0;
         }
-    }
 
-    std::string normalizeField(const std::string& s)
-    {
-        std::string trimmed = trim(s);
-        std::string out;
-        out.reserve(trimmed.size());
-        bool inSpace = false;
-        for (char ch : trimmed)
+        std::string normalizeField(const std::string& s)
         {
-            unsigned char uch = static_cast<unsigned char>(ch);
-            const bool isSpace = std::isspace(uch) != 0;
-            if (isSpace)
+            std::string trimmed = trim(s);
+            std::string out;
+            out.reserve(trimmed.size());
+            bool inSpace = false;
+            for (char ch : trimmed)
             {
-                if (!inSpace && !out.empty())
+                unsigned char uch = static_cast<unsigned char>(ch);
+                const bool isSpace = std::isspace(uch) != 0;
+                if (isSpace)
                 {
-                    out.push_back(' ');
-                    inSpace = true;
+                    if (! inSpace && ! out.empty())
+                    {
+                        out.push_back(' ');
+                        inSpace = true;
+                    }
+                }
+                else
+                {
+                    out.push_back(static_cast<char>(std::tolower(uch)));
+                    inSpace = false;
                 }
             }
-            else
-            {
-                out.push_back(static_cast<char>(std::tolower(uch)));
-                inSpace = false;
-            }
+            return out;
         }
-        return out;
-    }
 
-    std::string makePayload(const std::string& first,
-                            const std::string& last,
-                            const std::string& email,
-                            const std::string& version,
-                            const std::string& yyyymmdd)
-    {
-        std::ostringstream oss;
-        oss << normalizeField(first) << '|'
-            << normalizeField(last) << '|'
-            << normalizeField(email) << '|'
-            << version << '|'
-            << yyyymmdd;
-        return oss.str();
-    }
+        std::string makePayload(const std::string& first,
+                                const std::string& last,
+                                const std::string& email,
+                                const std::string& version,
+                                const std::string& yyyymmdd)
+        {
+            std::ostringstream oss;
+            oss << normalizeField(first) << '|'
+                << normalizeField(last) << '|'
+                << normalizeField(email) << '|'
+                << version << '|'
+                << yyyymmdd;
+            return oss.str();
+        }
 
-    std::string utcDateYYYYMMDD()
-    {
-        std::time_t now = std::time(nullptr);
-        std::tm tm{};
+        std::string utcDateYYYYMMDD()
+        {
+            std::time_t now = std::time(nullptr);
+            std::tm tm{};
 #if defined(_WIN32)
-        gmtime_s(&tm, &now);
+            gmtime_s(&tm, &now);
 #else
-        gmtime_r(&now, &tm);
+            gmtime_r(&now, &tm);
 #endif
-        char buffer[16] = {};
-        std::snprintf(buffer, sizeof(buffer), "%04d%02d%02d",
-                      tm.tm_year + 1900,
-                      tm.tm_mon + 1,
-                      tm.tm_mday);
-        return std::string(buffer);
+            char buffer[16] = {};
+            std::snprintf(buffer, sizeof(buffer), "%04d%02d%02d",
+                          tm.tm_year + 1900,
+                          tm.tm_mon + 1,
+                          tm.tm_mday);
+            return std::string(buffer);
+        }
     }
 
     std::string makeLicense(const std::string& first,
@@ -162,17 +159,17 @@ namespace license
         return formatted;
     }
 
-    bool verifyLicense(const std::string& license,
+    bool verifyLicense(const std::string& licenseStr,
                        const std::string& first,
                        const std::string& last,
                        const std::string& email)
     {
-        if (license.empty())
+        if (licenseStr.empty())
             return false;
 
         std::string cleaned;
-        cleaned.reserve(license.size());
-        for (char c : license)
+        cleaned.reserve(licenseStr.size());
+        for (char c : licenseStr)
         {
             if (std::isspace(static_cast<unsigned char>(c)))
                 continue;
@@ -198,7 +195,7 @@ namespace license
 
         const std::string& version = parts[0];
         const std::string& date = parts[1];
-        if (version.empty() || date.size() != 8 || !isDigits(date))
+        if (version.empty() || date.size() != 8 || ! isDigits(date))
             return false;
 
         std::string signature;
@@ -229,4 +226,4 @@ namespace license
 
         return constTimeEquals(signature, expected);
     }
-}
+} // namespace license
