@@ -139,6 +139,7 @@
     <Lib />
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\Source\license.cpp" />
     <ClCompile Include="..\..\Source\Main.cpp" />
     <ClCompile Include="..\..\Source\MainComponent.cpp" />
     <ClCompile Include="..\..\..\..\..\..\JUCE\modules\juce_core\containers\juce_AbstractFifo.cpp">
@@ -1742,8 +1743,12 @@
     <ClCompile Include="..\..\JuceLibraryCode\include_juce_gui_basics.cpp">
       <AdditionalOptions> /bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
+    <ClCompile Include="..\..\Source\tests_license.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\Source\base32.h" />
+    <ClInclude Include="..\..\Source\crypto_small.h" />
+    <ClInclude Include="..\..\Source\license.h" />
     <ClInclude Include="..\..\Source\MainComponent.h" />
     <ClInclude Include="..\..\..\..\..\..\JUCE\modules\juce_core\containers\juce_AbstractFifo.h" />
     <ClInclude Include="..\..\..\..\..\..\JUCE\modules\juce_core\containers\juce_Array.h" />

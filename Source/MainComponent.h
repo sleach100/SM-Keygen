@@ -43,8 +43,8 @@ private:
     juce::TextButton btnGenerate { "Generate" };
     juce::TextButton btnVerify { "Verify" };
     juce::TextButton btnCopy { "Copy Key" };
-    juce::TextButton btnBatchIn { "Batch from CSV…" };
-    juce::TextButton btnSaveCsv { "Save CSV…" };
+    juce::TextButton btnBatchIn { "Batch from CSV..." };
+    juce::TextButton btnSaveCsv { "Save CSV..." };
 
     juce::Label statusLabel;
 
