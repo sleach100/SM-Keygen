@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include "license.h"
+#include <memory>
 #include <vector>
 
 class MainComponent  : public juce::Component
@@ -48,6 +49,8 @@ private:
     juce::Label statusLabel;
 
     std::vector<Row> batchRows;
+    std::unique_ptr<juce::FileChooser> openFileChooser;
+    std::unique_ptr<juce::FileChooser> saveFileChooser;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };

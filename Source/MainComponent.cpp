@@ -1,4 +1,5 @@
 #include "MainComponent.h"
+#include <juce_gui_basics/juce_gui_basics.h>
 
 namespace
 {
@@ -171,72 +172,83 @@ void MainComponent::copyLicenseToClipboard()
 
 void MainComponent::loadBatchFromCsv()
 {
-    juce::FileChooser chooser("Select CSV file", {}, "*.csv");
-    if (! chooser.browseForFileToOpen())
-        return;
-
-    const juce::File file = chooser.getResult();
-    juce::FileInputStream stream(file);
-    if (! stream.openedOk())
+    openFileChooser = std::make_unique<juce::FileChooser>("Select CSV file to open", juce::File{}, "*.csv");
+    if (auto* chooser = openFileChooser.get())
     {
-        updateStatus("Failed to open file.", errorColour());
-        return;
-    }
+        chooser->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
+                             [this](const juce::FileChooser& fc)
+                             {
+                                 auto file = fc.getResult();
+                                 if (file.existsAsFile())
+                                 {
+                                     juce::FileInputStream stream(file);
+                                     if (! stream.openedOk())
+                                     {
+                                         updateStatus("Failed to open file.", errorColour());
+                                         openFileChooser.reset();
+                                         return;
+                                     }
 
-    const juce::String content = stream.readEntireStreamAsString();
-    juce::StringArray lines;
-    lines.addLines(content);
+                                     const juce::String content = stream.readEntireStreamAsString();
+                                     juce::StringArray lines;
+                                     lines.addLines(content);
 
-    if (lines.isEmpty())
-    {
-        updateStatus("CSV is empty.", errorColour());
-        return;
-    }
+                                     if (lines.isEmpty())
+                                     {
+                                         updateStatus("CSV is empty.", errorColour());
+                                         openFileChooser.reset();
+                                         return;
+                                     }
 
-    auto looksLikeHeader = [](const juce::StringArray& columns)
-    {
-        if (columns.size() < 3)
-            return false;
-        return columns[0].trim().equalsIgnoreCase("first") &&
-               columns[1].trim().equalsIgnoreCase("last") &&
-               columns[2].trim().equalsIgnoreCase("email");
-    };
+                                     auto looksLikeHeader = [](const juce::StringArray& columns)
+                                     {
+                                         if (columns.size() < 3)
+                                             return false;
+                                         return columns[0].trim().equalsIgnoreCase("first") &&
+                                                columns[1].trim().equalsIgnoreCase("last") &&
+                                                columns[2].trim().equalsIgnoreCase("email");
+                                     };
 
-    batchRows.clear();
-    batchRows.reserve(static_cast<size_t>(lines.size()));
+                                     batchRows.clear();
+                                     batchRows.reserve(static_cast<size_t>(lines.size()));
 
-    for (int i = 0; i < lines.size(); ++i)
-    {
-        auto columns = juce::StringArray::fromTokens(lines[i], ",", "");
-        for (int c = 0; c < columns.size(); ++c)
-            columns.set(c, columns[c].trim());
+                                     for (int i = 0; i < lines.size(); ++i)
+                                     {
+                                         auto columns = juce::StringArray::fromTokens(lines[i], ",", "");
+                                         for (int c = 0; c < columns.size(); ++c)
+                                             columns.set(c, columns[c].trim());
 
-        if (i == 0 && looksLikeHeader(columns))
-            continue;
+                                         if (i == 0 && looksLikeHeader(columns))
+                                             continue;
 
-        if (columns.size() < 3)
-            continue;
+                                         if (columns.size() < 3)
+                                             continue;
 
-        if (columns[0].isEmpty() || columns[1].isEmpty() || columns[2].isEmpty())
-            continue;
+                                         if (columns[0].isEmpty() || columns[1].isEmpty() || columns[2].isEmpty())
+                                             continue;
 
-        Row row;
-        row.first = columns[0];
-        row.last = columns[1];
-        row.email = columns[2];
-        row.license = license::makeLicense(row.first.toStdString(),
-                                           row.last.toStdString(),
-                                           row.email.toStdString());
-        batchRows.push_back(row);
-    }
+                                         Row row;
+                                         row.first = columns[0];
+                                         row.last = columns[1];
+                                         row.email = columns[2];
+                                         row.license = license::makeLicense(row.first.toStdString(),
+                                                                            row.last.toStdString(),
+                                                                            row.email.toStdString());
+                                         batchRows.push_back(row);
+                                     }
 
-    if (batchRows.empty())
-    {
-        updateStatus("No rows parsed.", errorColour());
-    }
-    else
-    {
-        updateStatus(juce::String(batchRows.size()) + " licenses generated.", defaultStatusColour());
+                                     if (batchRows.empty())
+                                     {
+                                         updateStatus("No rows parsed.", errorColour());
+                                     }
+                                     else
+                                     {
+                                         updateStatus(juce::String(batchRows.size()) + " licenses generated.", defaultStatusColour());
+                                     }
+                                 }
+
+                                 openFileChooser.reset();
+                             });
     }
 }
 
@@ -248,27 +260,37 @@ void MainComponent::saveBatchToCsv()
         return;
     }
 
-    juce::FileChooser chooser("Save CSV file", {}, "*.csv");
-    if (! chooser.browseForFileToSave(true))
-        return;
-
-    const juce::File file = chooser.getResult();
-    juce::FileOutputStream stream(file);
-    if (! stream.openedOk())
+    saveFileChooser = std::make_unique<juce::FileChooser>("Select CSV file to save", juce::File{}, "*.csv");
+    if (auto* chooser = saveFileChooser.get())
     {
-        updateStatus("Failed to save file.", errorColour());
-        return;
-    }
+        chooser->launchAsync(juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles,
+                             [this](const juce::FileChooser& fc)
+                             {
+                                 auto file = fc.getResult();
+                                 if (file != juce::File{})
+                                 {
+                                     juce::FileOutputStream stream(file);
+                                     if (! stream.openedOk())
+                                     {
+                                         updateStatus("Failed to save file.", errorColour());
+                                         saveFileChooser.reset();
+                                         return;
+                                     }
 
-    stream << "first,last,email,license\n";
-    for (const auto& row : batchRows)
-    {
-        stream << row.first << ','
-               << row.last << ','
-               << row.email << ','
-               << row.license << '\n';
-    }
+                                     stream << "first,last,email,license\n";
+                                     for (const auto& row : batchRows)
+                                     {
+                                         stream << row.first << ','
+                                                << row.last << ','
+                                                << row.email << ','
+                                                << row.license << '\n';
+                                     }
 
-    stream.flush();
-    updateStatus("CSV saved.", defaultStatusColour());
+                                     stream.flush();
+                                     updateStatus("CSV saved.", defaultStatusColour());
+                                 }
+
+                                 saveFileChooser.reset();
+                             });
+    }
 }
