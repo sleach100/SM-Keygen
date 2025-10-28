@@ -220,15 +220,12 @@ bool MainComponent::appendLicenseRecord(const juce::String& first,
                                         const juce::String& licenseKey)
 {
     auto csvFile = juce::File::getCurrentWorkingDirectory().getChildFile("Slot-Machine-Keys.csv");
-    const bool fileExists = csvFile.existsAsFile();
+    const auto existingSize = csvFile.existsAsFile() ? csvFile.getSize() : 0;
 
-    juce::FileOutputStream stream(csvFile, 16384, true);
+    juce::String textToAppend;
 
-    if (! stream.openedOk())
-        return false;
-
-    if (! fileExists || csvFile.getSize() == 0)
-        stream << "First,Last,Email,GeneratedAt,License\n";
+    if (existingSize == 0)
+        textToAppend << "First,Last,Email,GeneratedAt,License\n";
 
     const auto timestamp = juce::Time::getCurrentTime().toISO8601(true);
     juce::StringArray fields { first, last, email, timestamp, licenseKey };
@@ -236,14 +233,14 @@ bool MainComponent::appendLicenseRecord(const juce::String& first,
     for (int i = 0; i < fields.size(); ++i)
     {
         if (i != 0)
-            stream << ',';
+            textToAppend << ',';
 
-        stream << escapeCsvField(fields[i]);
+        textToAppend << escapeCsvField(fields[i]);
     }
 
-    stream << '\n';
+    textToAppend << '\n';
 
-    return stream.flush();
+    return csvFile.appendText(textToAppend, false, false);
 }
 
 void MainComponent::loadBatchFromCsv()
