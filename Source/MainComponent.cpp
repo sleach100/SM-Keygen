@@ -9,6 +9,18 @@ namespace
     juce::Colour invalidColour() { return juce::Colours::red; }
     juce::Colour errorColour() { return juce::Colours::orange; }
 
+    juce::String escapeCsvField(const juce::String& input)
+    {
+        auto escaped = input;
+        const bool needsQuotes = escaped.containsAnyOf(",\"\n\r");
+        escaped = escaped.replace("\"", "\"\"");
+
+        if (needsQuotes)
+            return '"' + escaped + '"';
+
+        return escaped;
+    }
+
     bool isNeutralStatusColour(juce::Colour colour)
     {
         return colour == defaultStatusColour();
@@ -159,13 +171,17 @@ void MainComponent::generateLicense()
     if (!validateInputs(first, last, email))
         return;
 
-    const std::string licenseKey = license::makeLicense(first.toStdString(),
+    const juce::String licenseKey = license::makeLicense(first.toStdString(),
                                                         last.toStdString(),
                                                         email.toStdString());
     keyOut.setText(licenseKey, juce::dontSendNotification);
     keyOut.selectAll();
+
+    const bool saved = appendLicenseRecord(first, last, email, licenseKey);
+
     updateCopyState();
-    updateStatus("Generated.", defaultStatusColour());
+    updateStatus(saved ? "Generated." : "Generated, but failed to update CSV.",
+                 saved ? defaultStatusColour() : errorColour());
 }
 
 void MainComponent::verifyCurrentLicense()
@@ -196,6 +212,38 @@ void MainComponent::copyLicenseToClipboard()
 
     juce::SystemClipboard::copyTextToClipboard(text);
     updateStatus("Copied to clipboard.", defaultStatusColour());
+}
+
+bool MainComponent::appendLicenseRecord(const juce::String& first,
+                                        const juce::String& last,
+                                        const juce::String& email,
+                                        const juce::String& licenseKey)
+{
+    auto csvFile = juce::File::getCurrentWorkingDirectory().getChildFile("Slot-Machine-Keys.csv");
+    const bool fileExists = csvFile.existsAsFile();
+
+    juce::FileOutputStream stream(csvFile, 16384, true);
+
+    if (! stream.openedOk())
+        return false;
+
+    if (! fileExists || csvFile.getSize() == 0)
+        stream << "First,Last,Email,GeneratedAt,License\n";
+
+    const auto timestamp = juce::Time::getCurrentTime().toISO8601(true);
+    juce::StringArray fields { first, last, email, timestamp, licenseKey };
+
+    for (int i = 0; i < fields.size(); ++i)
+    {
+        if (i != 0)
+            stream << ',';
+
+        stream << escapeCsvField(fields[i]);
+    }
+
+    stream << '\n';
+
+    return stream.flush();
 }
 
 void MainComponent::loadBatchFromCsv()
