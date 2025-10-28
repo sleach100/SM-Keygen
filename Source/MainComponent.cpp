@@ -8,6 +8,29 @@ namespace
     juce::Colour validColour() { return juce::Colours::green; }
     juce::Colour invalidColour() { return juce::Colours::red; }
     juce::Colour errorColour() { return juce::Colours::orange; }
+
+    bool isNeutralStatusColour(juce::Colour colour)
+    {
+        return colour == defaultStatusColour();
+    }
+
+    juce::Colour statusTextColour(juce::Colour statusColour)
+    {
+        if (isNeutralStatusColour(statusColour))
+            return juce::Colours::darkgrey;
+
+        return statusColour;
+    }
+
+    juce::Colour statusBackgroundColour(juce::Colour statusColour)
+    {
+        if (isNeutralStatusColour(statusColour))
+            return juce::Colours::transparentBlack;
+
+        // Provide a subtle tint so the label colour change is obvious even if
+        // the text colour is similar to a previous state.
+        return statusColour.withAlpha(0.18f);
+    }
 }
 
 MainComponent::MainComponent()
@@ -17,7 +40,9 @@ MainComponent::MainComponent()
 
     addAndMakeVisible(statusLabel);
     statusLabel.setJustificationType(juce::Justification::centredLeft);
-    statusLabel.setColour(juce::Label::textColourId, defaultStatusColour());
+    statusLabel.setColour(juce::Label::textColourId, statusTextColour(defaultStatusColour()));
+    statusLabel.setColour(juce::Label::backgroundColourId, statusBackgroundColour(defaultStatusColour()));
+    statusLabel.setColour(juce::Label::outlineColourId, juce::Colours::transparentBlack);
     statusLabel.setText("Ready", juce::dontSendNotification);
 
     setSize (720, 420);
@@ -102,8 +127,10 @@ void MainComponent::resized()
 
 void MainComponent::updateStatus(const juce::String& message, juce::Colour colour)
 {
-    statusLabel.setColour(juce::Label::textColourId, colour);
+    statusLabel.setColour(juce::Label::textColourId, statusTextColour(colour));
+    statusLabel.setColour(juce::Label::backgroundColourId, statusBackgroundColour(colour));
     statusLabel.setText(message, juce::dontSendNotification);
+    statusLabel.repaint();
 }
 
 bool MainComponent::validateInputs(juce::String& outFirst, juce::String& outLast, juce::String& outEmail)
