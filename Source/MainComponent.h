@@ -34,6 +34,10 @@ private:
     void copyLicenseToClipboard();
     void loadBatchFromCsv();
     void saveBatchToCsv();
+    bool appendLicenseRecord(const juce::String& first,
+                             const juce::String& last,
+                             const juce::String& email,
+                             const juce::String& licenseKey);
 
     juce::TextEditor firstEdit;
     juce::TextEditor lastEdit;
